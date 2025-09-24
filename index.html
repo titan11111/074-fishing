@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG釣りゲーム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom, #87CEEB 0%, #4A90E2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 900px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .status-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .player-info {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .stat-icon {
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: linear-gradient(to bottom, #e3f2fd 0%, #bbdefb 100%);
+        }
+
+        .fishing-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .water {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 75%;
+            background: linear-gradient(to bottom, 
+                rgba(41, 128, 185, 0.7) 0%, 
+                rgba(52, 73, 94, 0.9) 100%);
+            animation: wave 3s ease-in-out infinite;
+        }
+
+        .control-area {
+            background: linear-gradient(to right, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            border-top: 3px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .fish {
+            position: absolute;
+            font-size: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: swim 8s linear infinite;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+            transform: scaleX(-1);
+        }
+
+        @keyframes swim {
+            0% { 
+                left: -50px;
+                transform: scaleX(-1);
+            }
+            100% { 
+                left: 950px;
+                transform: scaleX(-1);
+            }
+        }
+
+        .fish:hover {
+            transform: scale(1.2) scaleX(-1);
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); filter: brightness(1.5); }
+        }
+
+        .btn {
+            width: 100px;
+            height: 100px;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            font-size: 28px;
+        }
+
+        .btn-text {
+            font-size: 12px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .fishing-game {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: none;
+            text-align: center;
+            z-index: 20;
+        }
+
+        .fishing-game.active {
+            display: block;
+            animation: popIn 0.3s ease;
+        }
+
+        @keyframes popIn {
+            0% { 
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+            100% { 
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .gauge-container {
+            width: 300px;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            margin: 20px auto;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .gauge-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.1s ease;
+            border-radius: 15px;
+        }
+
+        .target-zone {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 50%;
+            background: rgba(255, 215, 0, 0.3);
+            border: 2px solid #FFD700;
+            animation: moveTarget 3s linear infinite;
+        }
+
+        @keyframes moveTarget {
+            0% { left: 0%; }
+            50% { left: 50%; }
+            100% { left: 0%; }
+        }
+
+        .shop {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 20;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .shop.active {
+            display: block;
+            animation: popIn 0.3s ease;
+        }
+
+        .shop-header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin: 10px 0;
+            background: #f5f5f5;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .shop-item:hover {
+            background: #e8e8e8;
+            transform: translateX(5px);
+        }
+
+        .shop-item-info {
+            flex: 1;
+        }
+
+        .shop-item-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .shop-item-effect {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .shop-item-price {
+            font-weight: bold;
+            color: #f39c12;
+            margin-right: 10px;
+        }
+
+        .inventory {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 20;
+            max-width: 600px;
+        }
+
+        .inventory.active {
+            display: block;
+            animation: popIn 0.3s ease;
+        }
+
+        .fish-collection {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .fish-card {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .fish-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .fish-icon {
+            font-size: 30px;
+            margin-bottom: 5px;
+        }
+
+        .fish-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .fish-count {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            z-index: 100;
+            animation: fadeInOut 2s ease;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .level-up {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 20px;
+            font-size: 30px;
+            font-weight: bold;
+            z-index: 100;
+            animation: levelUpAnimation 3s ease;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.5);
+        }
+
+        @keyframes levelUpAnimation {
+            0% { 
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5) rotate(-10deg);
+            }
+            50% { 
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2) rotate(5deg);
+            }
+            100% { 
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            }
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: #ff3838;
+            transform: rotate(90deg);
+        }
+
+        .fishing-game .btn {
+            width: auto;
+            height: auto;
+            padding: 12px 25px;
+            flex-direction: row;
+            gap: 5px;
+        }
+
+        .fishing-game .btn-icon {
+            display: none;
+        }
+
+        .fishing-game .btn-text {
+            font-size: 16px;
+        }
+
+        .shop-item .btn {
+            width: auto;
+            height: auto;
+            padding: 8px 20px;
+            font-size: 14px;
+        }
+
+        .tutorial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .tutorial-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 500px;
+            text-align: center;
+            animation: popIn 0.3s ease;
+        }
+
+        .tutorial-content h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .tutorial-steps {
+            text-align: left;
+            margin: 20px 0;
+        }
+
+        .tutorial-step {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+
+        .step-text {
+            flex: 1;
+            color: #333;
+        }
+
+        .tutorial-hint {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 20px;
+            color: #856404;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="tutorial" class="tutorial-overlay" style="display: none;">
+            <div class="tutorial-content">
+                <h2>🎣 釣りゲームの遊び方</h2>
+                <div class="tutorial-steps">
+                    <div class="tutorial-step">
+                        <div class="step-number">1</div>
+                        <div class="step-text">
+                            <strong>魚を選ぶ</strong><br>
+                            水中を泳いでいる魚をクリック！選んだ魚が金色に光ります。
+                        </div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-number">2</div>
+                        <div class="step-text">
+                            <strong>釣りを始める</strong><br>
+                            下の「釣りを始める」ボタンをクリック！
+                        </div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-number">3</div>
+                        <div class="step-text">
+                            <strong>タイミングゲーム</strong><br>
+                            黄色いゾーンが中央に来たときに「クリック！」ボタンを押す！
+                        </div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-number">4</div>
+                        <div class="step-text">
+                            <strong>ゲージを満タンに</strong><br>
+                            成功するとゲージが増加。100%で魚ゲット！
+                        </div>
+                    </div>
+                </div>
+                <div class="tutorial-hint">
+                    💡 ヒント: 最初は小さい魚（イワシやアジ）から練習しよう！
+                </div>
+                <button class="btn" onclick="game.closeTutorial()" style="margin-top: 20px;">はじめる！</button>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="player-info">
+                <div class="stat">
+                    <div class="stat-icon">⭐</div>
+                    <span>Lv.<span id="level">1</span></span>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon">💰</div>
+                    <span>¥<span id="money">0</span></span>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon">🎣</div>
+                    <span id="rod">基本の釣り竿</span>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon">📊</div>
+                    <span>EXP: <span id="exp">0</span>/<span id="expNeeded">100</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <div class="fishing-area" id="fishingArea">
+                <div class="water"></div>
+            </div>
+            
+            <div class="control-area">
+                <button class="btn" onclick="game.startFishing()">
+                    <span class="btn-icon">🎣</span>
+                    <span class="btn-text">釣りを<br>始める</span>
+                </button>
+                <button class="btn" onclick="game.openShop()">
+                    <span class="btn-icon">🏪</span>
+                    <span class="btn-text">ショップ</span>
+                </button>
+                <button class="btn" onclick="game.openInventory()">
+                    <span class="btn-icon">📦</span>
+                    <span class="btn-text">コレクション</span>
+                </button>
+                <button class="btn" onclick="game.showTutorial()" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <span class="btn-icon">❓</span>
+                    <span class="btn-text">遊び方</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="fishing-game" id="fishingGame">
+            <h2>🎣 釣りチャレンジ！</h2>
+            <p id="fishTarget"></p>
+            <div class="gauge-container">
+                <div class="gauge-fill" id="gaugeFill"></div>
+                <div class="target-zone" id="targetZone"></div>
+            </div>
+            <div style="margin: 10px 0; color: #666; font-size: 14px;">
+                黄色いゾーンが中央に来たときにクリック！
+            </div>
+            <button class="btn" onclick="game.catchAttempt()">クリック！</button>
+            <button class="btn" onclick="game.cancelFishing()">やめる</button>
+        </div>
+
+        <div class="shop" id="shop">
+            <button class="close-btn" onclick="game.closeShop()">×</button>
+            <div class="shop-header">
+                <h2>🏪 釣具ショップ</h2>
+                <p>所持金: ¥<span id="shopMoney">0</span></p>
+            </div>
+            <div id="shopItems"></div>
+        </div>
+
+        <div class="inventory" id="inventory">
+            <button class="close-btn" onclick="game.closeInventory()">×</button>
+            <h2>📦 釣った魚のコレクション</h2>
+            <div class="fish-collection" id="fishCollection"></div>
+        </div>
+    </div>
+
+    <script>
+        class Fish {
+            constructor(name, icon, rarity, value, exp, difficulty, color = null, size = 30) {
+                this.name = name;
+                this.icon = icon;
+                this.rarity = rarity;
+                this.value = value;
+                this.exp = exp;
+                this.difficulty = difficulty;
+                this.color = color;
+                this.size = size;
+            }
+        }
+
+        class Rod {
+            constructor(name, price, catchBonus, description) {
+                this.name = name;
+                this.price = price;
+                this.catchBonus = catchBonus;
+                this.description = description;
+            }
+        }
+
+        class FishingRPG {
+            constructor() {
+                this.player = {
+                    level: 1,
+                    exp: 0,
+                    expNeeded: 100,
+                    money: 0,
+                    currentRod: 0,
+                    rodBonus: 0,
+                    fishCaught: {}
+                };
+
+                this.fishes = [
+                    new Fish("イワシ", "🐟", "common", 10, 5, 0.95, "#a8c0d8", 25),
+                    new Fish("アジ", "🐟", "common", 15, 8, 0.90, "#7ca3cc", 28),
+                    new Fish("サバ", "🐟", "common", 20, 10, 0.85, "#5c8eb8", 30),
+                    new Fish("タイ", "🐟", "uncommon", 50, 25, 0.80, "#ff69b4", 35),
+                    new Fish("サケ", "🐟", "uncommon", 60, 30, 0.75, "#ff7f50", 35),
+                    new Fish("マグロ", "🐟", "rare", 100, 50, 0.70, "#4169e1", 40),
+                    new Fish("カジキ", "🐟", "rare", 150, 75, 0.65, "#1e90ff", 45),
+                    new Fish("サメ", "🦈", "legendary", 300, 150, 0.55, null, 50),
+                    new Fish("クジラ", "🐋", "legendary", 500, 300, 0.45, null, 60)
+                ];
+
+                this.rods = [
+                    new Rod("基本の釣り竿", 0, 0, "初心者用の釣り竿"),
+                    new Rod("改良釣り竿", 100, 0.1, "少し良い釣り竿 (成功率+10%)"),
+                    new Rod("プロの釣り竿", 300, 0.2, "プロ仕様の釣り竿 (成功率+20%)"),
+                    new Rod("マスターロッド", 800, 0.3, "達人の釣り竿 (成功率+30%)"),
+                    new Rod("伝説の釣り竿", 2000, 0.5, "伝説級の釣り竿 (成功率+50%)")
+                ];
+
+                this.currentFish = null;
+                this.fishingActive = false;
+                this.gaugeValue = 60;
+                this.targetPosition = 0;
+                this.targetDirection = 1;
+                this.fishingInterval = null;
+
+                this.init();
+                
+                // 初回起動時にチュートリアルを表示
+                this.tutorialShown = false;
+                if (!this.tutorialShown) {
+                    setTimeout(() => this.showTutorial(), 500);
+                }
+            }
+
+            showTutorial() {
+                document.getElementById('tutorial').style.display = 'flex';
+                this.tutorialShown = true;
+            }
+
+            closeTutorial() {
+                document.getElementById('tutorial').style.display = 'none';
+            }
+
+            init() {
+                this.updateUI();
+                this.spawnFishes();
+                setInterval(() => this.spawnFishes(), 5000);
+            }
+
+            updateUI() {
+                document.getElementById('level').textContent = this.player.level;
+                document.getElementById('money').textContent = this.player.money;
+                document.getElementById('exp').textContent = this.player.exp;
+                document.getElementById('expNeeded').textContent = this.player.expNeeded;
+                document.getElementById('rod').textContent = this.rods[this.player.currentRod].name;
+                document.getElementById('shopMoney').textContent = this.player.money;
+            }
+
+            spawnFishes() {
+                const area = document.getElementById('fishingArea');
+                const existingFishes = area.querySelectorAll('.fish');
+                
+                if (existingFishes.length < 5) {
+                    const fish = this.getRandomFish();
+                    const fishElement = document.createElement('div');
+                    fishElement.className = 'fish';
+                    fishElement.textContent = fish.icon;
+                    fishElement.style.top = `${30 + Math.random() * 45}%`;
+                    fishElement.style.animationDuration = `${8 + Math.random() * 4}s`;
+                    fishElement.style.cursor = 'pointer';
+                    fishElement.style.fontSize = `${fish.size}px`;
+                    
+                    // 魚に色を適用
+                    if (fish.color) {
+                        fishElement.style.color = fish.color;
+                        fishElement.style.filter = `drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))`;
+                    }
+                    
+                    // 魚にホバー時のツールチップを追加
+                    fishElement.title = `${fish.name} - クリックして選択`;
+                    
+                    fishElement.onclick = () => this.selectFish(fish, fishElement);
+                    area.appendChild(fishElement);
+
+                    setTimeout(() => {
+                        if (fishElement.parentNode) {
+                            fishElement.remove();
+                        }
+                    }, 12000);
+                }
+            }
+
+            getRandomFish() {
+                const rand = Math.random();
+                let cumulative = 0;
+                const weights = [0.3, 0.25, 0.2, 0.1, 0.08, 0.04, 0.02, 0.008, 0.002];
+                
+                for (let i = 0; i < this.fishes.length; i++) {
+                    cumulative += weights[i];
+                    if (rand <= cumulative) {
+                        return this.fishes[i];
+                    }
+                }
+                return this.fishes[0];
+            }
+
+            selectFish(fish, element) {
+                if (!this.fishingActive) {
+                    // 以前選択した魚のハイライトを解除
+                    const allFishes = document.querySelectorAll('.fish');
+                    allFishes.forEach(f => {
+                        if (fish.color) {
+                            f.style.filter = 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))';
+                        } else {
+                            f.style.filter = '';
+                        }
+                        f.style.border = '';
+                    });
+                    
+                    this.currentFish = fish;
+                    element.style.filter = 'drop-shadow(0 0 10px gold)';
+                    element.style.border = '2px solid gold';
+                    element.style.borderRadius = '50%';
+                    this.showMessage(`${fish.name}を選択しました！「釣りを始める」をクリック！`);
+                }
+            }
+
+            startFishing() {
+                if (!this.currentFish) {
+                    this.showMessage('⚠️ まず水中の魚をクリックして選んでください！');
+                    
+                    // 魚を点滅させて注目を集める
+                    const allFishes = document.querySelectorAll('.fish');
+                    allFishes.forEach(f => {
+                        f.style.animation = 'pulse 1s ease 2';
+                    });
+                    setTimeout(() => {
+                        const fishElements = document.querySelectorAll('.fish');
+                        fishElements.forEach(f => {
+                            const duration = `${8 + Math.random() * 4}s`;
+                            f.style.animation = `swim ${duration} linear infinite`;
+                            f.style.transform = 'scaleX(-1)';
+                        });
+                    }, 2000);
+                    
+                    return;
+                }
+
+                this.fishingActive = true;
+                document.getElementById('fishingGame').classList.add('active');
+                document.getElementById('fishTarget').textContent = `${this.currentFish.icon} ${this.currentFish.name}を釣っています...`;
+                
+                this.gaugeValue = 60;
+                this.startFishingMechanics();
+            }
+
+            startFishingMechanics() {
+                const targetZone = document.getElementById('targetZone');
+                const difficulty = this.currentFish.difficulty;
+                
+                targetZone.style.animationDuration = `${4 - difficulty * 2}s`;
+                
+                this.fishingInterval = setInterval(() => {
+                    // ゲージの減少速度を緩やかに
+                    this.gaugeValue -= (1 - difficulty) * 1.5;
+                    if (this.gaugeValue <= 0) {
+                        this.fishEscaped();
+                    }
+                    this.updateGauge();
+                }, 100);
+            }
+
+            catchAttempt() {
+                if (!this.fishingActive) return;
+
+                const targetZone = document.getElementById('targetZone');
+                const rect = targetZone.getBoundingClientRect();
+                const containerRect = targetZone.parentElement.getBoundingClientRect();
+                const targetCenter = rect.left + rect.width / 2 - containerRect.left;
+                const containerCenter = containerRect.width / 2;
+                
+                const distance = Math.abs(targetCenter - containerCenter);
+                const maxDistance = containerRect.width / 2;
+                const accuracy = 1 - (distance / maxDistance);
+                
+                const successChance = this.currentFish.difficulty + this.player.rodBonus;
+                
+                // 成功判定を大幅に緩和
+                if (accuracy > 0.4) {  // より広い範囲で成功
+                    this.gaugeValue += 30;  // 成功時のゲージ増加量アップ
+                    if (this.gaugeValue >= 100) {
+                        this.catchSuccess();
+                    }
+                } else {
+                    this.gaugeValue -= 5;  // 失敗時のペナルティを軽減
+                    if (this.gaugeValue <= 0) {
+                        this.fishEscaped();
+                    }
+                }
+                
+                this.updateGauge();
+            }
+
+            updateGauge() {
+                document.getElementById('gaugeFill').style.width = `${this.gaugeValue}%`;
+            }
+
+            catchSuccess() {
+                clearInterval(this.fishingInterval);
+                this.fishingActive = false;
+                document.getElementById('fishingGame').classList.remove('active');
+                
+                const fish = this.currentFish;
+                this.player.money += fish.value;
+                this.gainExp(fish.exp);
+                
+                if (!this.player.fishCaught[fish.name]) {
+                    this.player.fishCaught[fish.name] = 0;
+                }
+                this.player.fishCaught[fish.name]++;
+                
+                this.showMessage(`🎉 ${fish.name}を釣り上げた！¥${fish.value}獲得！`);
+                this.currentFish = null;
+                this.updateUI();
+                
+                const allFishes = document.querySelectorAll('.fish');
+                allFishes.forEach(f => {
+                    f.style.filter = '';
+                    f.style.border = '';
+                });
+            }
+
+            fishEscaped() {
+                clearInterval(this.fishingInterval);
+                this.fishingActive = false;
+                document.getElementById('fishingGame').classList.remove('active');
+                
+                this.showMessage(`💨 ${this.currentFish.name}に逃げられた...`);
+                this.currentFish = null;
+                
+                const allFishes = document.querySelectorAll('.fish');
+                allFishes.forEach(f => {
+                    f.style.filter = '';
+                    f.style.border = '';
+                });
+            }
+
+            cancelFishing() {
+                clearInterval(this.fishingInterval);
+                this.fishingActive = false;
+                document.getElementById('fishingGame').classList.remove('active');
+                this.currentFish = null;
+                
+                const allFishes = document.querySelectorAll('.fish');
+                allFishes.forEach(f => {
+                    f.style.filter = '';
+                    f.style.border = '';
+                });
+            }
+
+            gainExp(exp) {
+                this.player.exp += exp;
+                while (this.player.exp >= this.player.expNeeded) {
+                    this.player.exp -= this.player.expNeeded;
+                    this.levelUp();
+                }
+                this.updateUI();
+            }
+
+            levelUp() {
+                this.player.level++;
+                this.player.expNeeded = Math.floor(this.player.expNeeded * 1.5);
+                this.player.rodBonus += 0.02;
+                
+                const levelUpDiv = document.createElement('div');
+                levelUpDiv.className = 'level-up';
+                levelUpDiv.textContent = `🌟 レベルアップ！Lv.${this.player.level}`;
+                document.body.appendChild(levelUpDiv);
+                
+                setTimeout(() => levelUpDiv.remove(), 3000);
+            }
+
+            openShop() {
+                document.getElementById('shop').classList.add('active');
+                this.renderShopItems();
+            }
+
+            closeShop() {
+                document.getElementById('shop').classList.remove('active');
+            }
+
+            renderShopItems() {
+                const container = document.getElementById('shopItems');
+                container.innerHTML = '';
+                
+                this.rods.forEach((rod, index) => {
+                    if (index === 0) return;
+                    
+                    const item = document.createElement('div');
+                    item.className = 'shop-item';
+                    
+                    const owned = this.player.currentRod >= index;
+                    
+                    item.innerHTML = `
+                        <div class="shop-item-info">
+                            <div class="shop-item-name">${rod.name}</div>
+                            <div class="shop-item-effect">${rod.description}</div>
+                        </div>
+                        <div>
+                            <span class="shop-item-price">¥${rod.price}</span>
+                            <button class="btn" onclick="game.buyRod(${index})" 
+                                ${owned || this.player.money < rod.price ? 'disabled' : ''}>
+                                ${owned ? '購入済み' : '購入'}
+                            </button>
+                        </div>
+                    `;
+                    
+                    container.appendChild(item);
+                });
+            }
+
+            buyRod(index) {
+                const rod = this.rods[index];
+                if (this.player.money >= rod.price && this.player.currentRod < index) {
+                    this.player.money -= rod.price;
+                    this.player.currentRod = index;
+                    this.player.rodBonus = rod.catchBonus;
+                    this.showMessage(`${rod.name}を購入しました！`);
+                    this.updateUI();
+                    this.renderShopItems();
+                }
+            }
+
+            openInventory() {
+                document.getElementById('inventory').classList.add('active');
+                this.renderCollection();
+            }
+
+            closeInventory() {
+                document.getElementById('inventory').classList.remove('active');
+            }
+
+            renderCollection() {
+                const container = document.getElementById('fishCollection');
+                container.innerHTML = '';
+                
+                this.fishes.forEach(fish => {
+                    const count = this.player.fishCaught[fish.name] || 0;
+                    const card = document.createElement('div');
+                    card.className = 'fish-card';
+                    
+                    const iconStyle = fish.color ? `style="color: ${fish.color}; font-size: ${fish.size}px;"` : `style="font-size: ${fish.size}px;"`;
+                    
+                    card.innerHTML = `
+                        <div class="fish-icon" ${iconStyle}>${fish.icon}</div>
+                        <div class="fish-name">${fish.name}</div>
+                        <div class="fish-count">×${count}</div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            showMessage(text) {
+                const msg = document.createElement('div');
+                msg.className = 'message';
+                msg.textContent = text;
+                document.body.appendChild(msg);
+                
+                setTimeout(() => msg.remove(), 2000);
+            }
+        }
+
+        const game = new FishingRPG();
+    </script>
+</body>
+</html>
+                
